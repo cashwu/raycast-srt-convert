@@ -9,11 +9,49 @@
     "Productivity"
   ],
   "license": "MIT",
+  "preferences": [
+    {
+      "title": "ttml Input",
+      "name": "inputMethod",
+      "description": "Where to obtain the ttml to modify.",
+      "type": "dropdown",
+      "data": [
+        {
+          "title": "Selection In Finder",
+          "value": "Finder"
+        },
+        {
+          "title": "Selection In Path Finder",
+          "value": "Path Finder"
+        }
+      ],
+      "default": "Finder",
+      "required": false
+    },
+    {
+      "title": "srt Output",
+      "name": "imageResultHandling",
+      "description": "How to handle the result of the image modification, i.e. where to save the modified image, or whether to copy it to the clipboard.",
+      "type": "dropdown",
+      "data": [
+        {
+          "title": "Save In Containing Folder",
+          "value": "saveInContainingFolder"
+        },
+        {
+          "title": "Save To Downloads",
+          "value": "saveToDownloads"
+        }
+      ],
+      "default": "saveInContainingFolder",
+      "required": false
+    }
+  ],
   "commands": [
     {
       "name": "srt-converter",
       "title": "srt converter",
-      "description": "",
+      "description": "convert any to srt",
       "mode": "view"
     }
   ],

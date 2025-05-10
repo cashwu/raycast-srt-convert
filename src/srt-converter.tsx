@@ -2,69 +2,79 @@ import { Detail, getPreferenceValues, LaunchProps, showToast, Toast } from "@ray
 import path from "path";
 import fs from "fs";
 import { DOMParser } from "xmldom";
+import { getSelectedFiles } from "./utils";
 
 interface Preferences {
   overwriteExisting: boolean;
 }
 
-export default async function Command(
-  props: LaunchProps<{ launchContext?: { path: string } }>
-) {
-  const filePath = props.launchContext?.path;
-
-  if (!filePath) {
-    await showToast({
-      style: Toast.Style.Failure,
-      title: "No file selected",
-      message: "Please select a TTML or XML file in Finder.",
-    });
-    return;
-  }
-
-  const preferences = getPreferenceValues<Preferences>();
-
-  await showToast({ style: Toast.Style.Animated, title: "Converting..." });
-
-  try {
-    const fileContent = fs.readFileSync(filePath, "utf-8");
-    const srtContent = convertToSRT(fileContent);
-
-    const dirName = path.dirname(filePath);
-    const baseName = path.basename(filePath, path.extname(filePath));
-    const srtFilePath = path.join(dirName, `${baseName}.srt`);
-
-    if (!preferences.overwriteExisting && fs.existsSync(srtFilePath)) {
-      await showToast({
+export default function Command() {
+  getSelectedFiles().then((selectedFiles) => {
+    if (selectedFiles.length === 0) {
+      showToast({
         style: Toast.Style.Failure,
-        title: "SRT File Exists",
-        message: `Output file ${srtFilePath} already exists. Enable 'Overwrite existing' in preferences or rename/delete existing file.`,
+        title: "No file selected",
+        message: "Please select a TTML or XML file in Finder.",
       });
       return;
     }
 
-    fs.writeFileSync(srtFilePath, srtContent, "utf-8");
+    const filePath = selectedFiles[0];
+    if (!filePath) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Invalid file path",
+        message: "No valid file path was selected.",
+      });
+      return;
+    }
 
-    await showToast({
-      style: Toast.Style.Success,
-      title: "Conversion Successful",
-      message: `SRT file saved to: ${srtFilePath}`,
-      // 可選: 添加一個操作，例如在 Finder 中顯示檔案
-      // primaryAction: {
-      //   title: "Show in Finder",
-      //   onAction: async (toast) => {
-      //     await open(srtFilePath);
-      //     toast.hide();
-      //   },
-      // },
-    });
-  } catch (error) {
-    console.error("Conversion failed:", error);
-    await showToast({
+    console.log("---- filePath: " + filePath);
+
+    const preferences = getPreferenceValues<Preferences>();
+
+    showToast({ style: Toast.Style.Animated, title: "Converting..." });
+
+    try {
+      const fileContent = fs.readFileSync(filePath, "utf-8");
+      const srtContent = convertToSRT(fileContent);
+
+      const dirName = path.dirname(filePath);
+      const baseName = path.basename(filePath, path.extname(filePath));
+      const srtFilePath = path.join(dirName, `${baseName}.srt`);
+
+      if (!preferences.overwriteExisting && fs.existsSync(srtFilePath)) {
+        showToast({
+          style: Toast.Style.Failure,
+          title: "SRT File Exists",
+          message: `Output file ${srtFilePath} already exists. Enable 'Overwrite existing' in preferences or rename/delete existing file.`,
+        });
+        return;
+      }
+
+      fs.writeFileSync(srtFilePath, srtContent, "utf-8");
+
+      showToast({
+        style: Toast.Style.Success,
+        title: "Conversion Successful",
+        message: `SRT file saved to: ${srtFilePath}`,
+      });
+    } catch (error) {
+      console.error("Conversion failed:", error);
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Conversion Failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }).catch((error) => {
+    console.error("Failed to get selected files:", error);
+    showToast({
       style: Toast.Style.Failure,
-      title: "Conversion Failed",
-      message: error instanceof Error ? error.message : String(error),
+      title: "Error",
+      message: "Failed to get selected files.",
     });
-  }
+  });
 }
 
 /**
