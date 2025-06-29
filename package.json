@@ -61,7 +61,7 @@
       "name": "srt-converter",
       "title": "Srt Converter",
       "description": "convert any to srt",
-      "mode": "view"
+      "mode": "no-view"
     }
   ],
   "dependencies": {

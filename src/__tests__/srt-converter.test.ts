@@ -251,7 +251,7 @@ describe("convertToSRT", () => {
   <data>No subtitle content here</data>
 </root>`;
 
-    expect(() => convertToSRT(xmlWithoutSubtitles)).toThrow("在 XML/TTML 檔案中找不到可識別的字幕內容");
+    expect(() => convertToSRT(xmlWithoutSubtitles)).toThrow("無法識別的字幕檔案格式");
   });
 });
 

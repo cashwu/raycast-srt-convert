@@ -147,10 +147,19 @@ export function parseVTT(vttContent: string): string {
 }
 
 export function convertToSRT(content: string): string {
+  const trimmedContent = content.trim();
+
   // 檢查是否為 VTT 格式
-  if (content.trim().startsWith("WEBVTT")) {
+  if (trimmedContent.startsWith("WEBVTT")) {
     return parseVTT(content);
   }
+
+  // 檢查是否為 TTML 格式
+  const isTTML =
+    trimmedContent.includes("<tt") ||
+    trimmedContent.includes('xmlns="http://www.w3.org/ns/ttml"') ||
+    trimmedContent.includes("xml:lang=") ||
+    (trimmedContent.includes("<head>") && trimmedContent.includes("<body>"));
 
   // 處理 XML/TTML 格式
   // 注意：這裡的 DOMParser 來自 'xmldom'
@@ -182,7 +191,15 @@ export function convertToSRT(content: string): string {
   }
 
   if (subtitleElements.length === 0) {
-    throw new Error("在 XML/TTML 檔案中找不到可識別的字幕內容（如 <p> 或 <transcript>/<text> 標籤）。");
+    if (isTTML) {
+      throw new Error("TTML 檔案格式正確，但找不到字幕內容。請檢查檔案是否包含 <p> 標籤。");
+    } else if (transcriptElements.length > 0) {
+      throw new Error("XML Transcript 檔案格式正確，但找不到 <text> 標籤內容。");
+    } else {
+      throw new Error(
+        `無法識別的字幕檔案格式。支援的格式包括：VTT、TTML、XML Transcript。\n檔案開頭內容：${trimmedContent.substring(0, 100)}...`,
+      );
+    }
   }
 
   let srtContent = "";
