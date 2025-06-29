@@ -19,8 +19,6 @@ const getSelectedTTMLFiles = async (): Promise<string> => {
       tell application "Finder"
         set theSelection to selection
         
-        -- Debug: Log selection count
-        log "Selection count: " & (count theSelection)
 
         if theSelection is {} then
           return ""
@@ -70,7 +68,6 @@ const getSelectedTTMLFiles = async (): Promise<string> => {
     end try`,
   );
 
-  console.log("AppleScript result:", result);
   return result || "";
 };
 
@@ -83,27 +80,16 @@ export const getSelectedFiles = async (): Promise<string[]> => {
   const selectedFiles: string[] = [];
 
   try {
-    console.log("開始取得選中的檔案...");
-
     // Get selected TTML files from Finder
     const finderFiles = await getSelectedTTMLFiles();
-    console.log("AppleScript 原始結果:", finderFiles);
-    console.log("結果類型:", typeof finderFiles);
-    console.log("結果長度:", finderFiles ? finderFiles.length : "null");
 
     if (finderFiles && finderFiles.trim()) {
       const files = finderFiles
         .split(", ")
         .map((f) => f.trim())
         .filter(Boolean);
-      console.log("分割後的檔案列表:", files);
       selectedFiles.push(...files);
-    } else {
-      console.log("AppleScript 沒有返回有效結果");
     }
-
-    console.log("最終選中的檔案:", selectedFiles);
-    console.log("檔案數量:", selectedFiles.length);
 
     return selectedFiles;
   } catch (error) {
