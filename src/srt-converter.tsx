@@ -133,10 +133,16 @@ function formatSRTTime(totalMilliseconds: number | undefined): string {
   return `${h}:${m}:${s},${ms}`;
 }
 
-function convertToSRT(xmlContent: string): string {
+function convertToSRT(content: string): string {
+  // 檢查是否為 VTT 格式
+  if (content.trim().startsWith("WEBVTT")) {
+    return parseVTT(content);
+  }
+
+  // 處理 XML/TTML 格式
   // 注意：這裡的 DOMParser 來自 'xmldom'
   const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
+  const xmlDoc = parser.parseFromString(content, "application/xml");
 
   // 檢查解析錯誤 (xmldom 的錯誤處理方式可能不同)
   const parserError = xmlDoc.getElementsByTagName("parsererror");
@@ -250,4 +256,99 @@ function convertToSRT(xmlContent: string): string {
   }
 
   return srtContent.trim();
+}
+
+function parseVTT(vttContent: string): string {
+  const lines = vttContent.split(/\r?\n/);
+  let srtContent = "";
+  let subtitleIndex = 1;
+  let i = 0;
+
+  // 跳過 WEBVTT 標題和可能的設定行
+  while (
+    i < lines.length &&
+    (lines[i].trim() === "" || lines[i].trim().startsWith("WEBVTT") || lines[i].trim().includes("NOTE"))
+  ) {
+    i++;
+  }
+
+  while (i < lines.length) {
+    // 跳過空行
+    while (i < lines.length && lines[i].trim() === "") {
+      i++;
+    }
+
+    if (i >= lines.length) break;
+
+    // 檢查是否為時間戳記行
+    const timelineMatch = lines[i].match(/^(\S+)\s+-->\s+(\S+)/);
+    if (timelineMatch) {
+      const startTime = timelineMatch[1];
+      const endTime = timelineMatch[2];
+
+      // 解析時間
+      const startMs = parseVTTTime(startTime);
+      const endMs = parseVTTTime(endTime);
+
+      if (startMs === undefined || endMs === undefined || endMs <= startMs) {
+        console.warn("Skipping VTT cue due to invalid time values:", lines[i]);
+        i++;
+        continue;
+      }
+
+      i++; // 移到下一行
+
+      // 收集字幕文字（直到遇到空行或文件結束）
+      const textLines: string[] = [];
+      while (i < lines.length && lines[i].trim() !== "") {
+        textLines.push(lines[i]);
+        i++;
+      }
+
+      if (textLines.length > 0) {
+        const text = textLines.join("\n").trim();
+        // 清理 VTT 標籤（如 <c>, <v>, <b>, <i> 等）
+        const cleanedText = text.replace(/<[^>]*>/g, "");
+
+        if (cleanedText) {
+          const srtStartTime = formatSRTTime(startMs);
+          const srtEndTime = formatSRTTime(endMs);
+
+          srtContent += `${subtitleIndex}\n`;
+          srtContent += `${srtStartTime} --> ${srtEndTime}\n`;
+          srtContent += `${cleanedText}\n\n`;
+
+          subtitleIndex++;
+        }
+      }
+    } else {
+      // 如果不是時間戳記行，可能是字幕 ID 或其他行，跳過
+      i++;
+    }
+  }
+
+  if (subtitleIndex === 1 && srtContent === "") {
+    throw new Error("成功解析 VTT 檔案，但未找到有效的字幕條目可轉換。請檢查檔案內容與時間標記。");
+  }
+
+  return srtContent.trim();
+}
+
+function parseVTTTime(timeStr: string): number | undefined {
+  if (!timeStr) return undefined;
+  timeStr = timeStr.trim();
+
+  // VTT 時間格式: MM:SS.mmm 或 HH:MM:SS.mmm
+  const match = timeStr.match(/^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\.(\d{3})$/);
+  if (match) {
+    const hours = match[1] ? parseInt(match[1]) : 0;
+    const minutes = parseInt(match[2]);
+    const seconds = parseInt(match[3]);
+    const milliseconds = parseInt(match[4]);
+
+    return hours * 3600000 + minutes * 60000 + seconds * 1000 + milliseconds;
+  }
+
+  console.warn("Unsupported VTT time format:", timeStr);
+  return undefined;
 }
