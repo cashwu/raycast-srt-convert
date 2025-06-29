@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transcript>
+  <text start="0" dur="3">Hello, world!</text>
+  <text start="3.5" dur="3.5">This is a test subtitle with duration.</text>
+  <text start="83.456" dur="3.333">Time in seconds format.</text>
+</transcript>
