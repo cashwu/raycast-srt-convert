@@ -37,15 +37,22 @@ export default async function Command() {
       const baseName = path.basename(filePath, path.extname(filePath));
       const srtFilePath = path.join(dirName, `${baseName}.srt`);
 
-      if (!preferences.overwriteExisting && fs.existsSync(srtFilePath)) {
-        await showHUD("⚠️ SRT 檔案已存在，請啟用覆蓋設定或重新命名");
+      // 檢查檔案是否已存在
+      const fileExists = fs.existsSync(srtFilePath);
+
+      if (fileExists && !preferences.overwriteExisting) {
+        await showHUD("⚠️ SRT 檔案已存在，請啟用「覆蓋現有檔案」設定或重新命名");
         return;
       }
 
       fs.writeFileSync(srtFilePath, srtContent, "utf-8");
 
-      // 顯示成功訊息
-      await showHUD(`✅ 轉換成功！SRT 檔案已儲存至：${baseName}.srt`);
+      // 根據檔案是否存在顯示不同的成功訊息
+      if (fileExists) {
+        await showHUD(`✅ 已覆蓋並轉換成功！SRT 檔案：${baseName}.srt`);
+      } else {
+        await showHUD(`✅ 轉換成功！SRT 檔案已儲存至：${baseName}.srt`);
+      }
     } catch (error) {
       console.error("Conversion failed:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);

@@ -52,7 +52,7 @@
       "label": "Overwrite existing files",
       "description": "Whether to overwrite existing SRT files or show an error",
       "type": "checkbox",
-      "default": true,
+      "default": false,
       "required": false
     }
   ],
